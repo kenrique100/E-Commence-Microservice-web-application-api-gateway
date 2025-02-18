@@ -19,15 +19,26 @@ import java.util.stream.Collectors;
 @Configuration
 public class SecurityConfig {
 
+    // Whitelisted URLs that do not require authentication
+    private final String[] freeResourceUrls = {
+            "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**",
+            "/swagger-resources/**", "/api-docs/**", "/aggregate/**"
+    };
+
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
                 .authorizeExchange(exchanges -> exchanges
-                        .anyExchange().authenticated() // Secure all endpoints
+                        // Allow access to free resources without authentication
+                        .pathMatchers(freeResourceUrls).permitAll()
+                        // Secure all other endpoints
+                        .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 )
+                // Disable CSRF for stateless APIs
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .build();
     }
 
@@ -35,10 +46,11 @@ public class SecurityConfig {
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
         ReactiveJwtAuthenticationConverter converter = new ReactiveJwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            // Extract roles from the JWT claim
             Collection<String> authorities = jwt.getClaimAsStringList("roles"); // Adjust claim as needed
             return Flux.fromIterable(authorities == null ? List.of() :
                     authorities.stream()
-                            .map(role -> (GrantedAuthority) () -> "ROLE_" + role)
+                            .map(role -> (GrantedAuthority) () -> "ROLE_" + role) // Prefix roles with "ROLE_"
                             .collect(Collectors.toList()));
         });
         return converter;
