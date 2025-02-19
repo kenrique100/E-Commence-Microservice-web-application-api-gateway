@@ -29,28 +29,33 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
                 .authorizeExchange(exchanges -> exchanges
-                        // Allow access to free resources without authentication
+                        // Allow unauthenticated access to free resources
                         .pathMatchers(freeResourceUrls).permitAll()
-                        // Secure all other endpoints
+                        // Allow internal service calls
+                        .pathMatchers("/api/**").permitAll()
+                        // Secure other endpoints
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 )
-                // Disable CSRF for stateless APIs
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .csrf(ServerHttpSecurity.CsrfSpec::disable) // Disable CSRF for stateless APIs
                 .build();
     }
+
 
     @Bean
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
         ReactiveJwtAuthenticationConverter converter = new ReactiveJwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
-            // Extract roles from the JWT claim
-            Collection<String> authorities = jwt.getClaimAsStringList("roles"); // Adjust claim as needed
+            // Handle different JWT claim structures
+            Collection<String> authorities = jwt.getClaimAsStringList("roles");
+            if (authorities == null) {
+                authorities = jwt.getClaimAsStringList("realm_access.roles");
+            }
             return Flux.fromIterable(authorities == null ? List.of() :
                     authorities.stream()
-                            .map(role -> (GrantedAuthority) () -> "ROLE_" + role) // Prefix roles with "ROLE_"
+                            .map(role -> (GrantedAuthority) () -> "ROLE_" + role)
                             .collect(Collectors.toList()));
         });
         return converter;
