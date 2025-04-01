@@ -5,10 +5,10 @@ services:
     volumes:
       - ./volume-data/mysql_keycloak_data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: Bundes9898
+      MYSQL_ROOT_PASSWORD:
       MYSQL_DATABASE: keycloak
-      MYSQL_USER: root
-      MYSQL_PASSWORD: Bundes9898
+      MYSQL_USER:
+      MYSQL_PASSWORD:
     networks:
       - my-network
     restart: unless-stopped
@@ -21,10 +21,10 @@ services:
       DB_VENDOR: mariadb
       DB_ADDR: keycloak-mysql
       DB_DATABASE: keycloak
-      DB_USER: root
-      DB_PASSWORD: Bundes9898
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: Bundes9898
+      DB_USER:
+      DB_PASSWORD:
+      KEYCLOAK_ADMIN:
+      KEYCLOAK_ADMIN_PASSWORD:
     ports:
       - "8181:8080"
     volumes:
